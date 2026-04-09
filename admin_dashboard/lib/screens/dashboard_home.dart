@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/firestore_service.dart';
+import '../services/dashboard_service.dart';
 import '../widgets/summary_card.dart';
 import '../layouts/dashboard_layout.dart';
 import '../widgets/charts/price_trend_chart.dart';
@@ -14,7 +14,7 @@ class DashboardHome extends StatefulWidget {
 }
 
 class _DashboardHomeState extends State<DashboardHome> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final DashboardService _dashboardService = DashboardService();
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +65,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                     childAspectRatio: childAspectRatio,
                     children: [
                       StreamBuilder<int>(
-                        stream: _firestoreService.getCommodityCountStream(),
+                        stream: _dashboardService.getCommodityCountStream(),
                         builder: (context, snapshot) => SummaryCard(
                           title: 'Total Commodities',
                           value: '${snapshot.data ?? 0}',
@@ -75,7 +75,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                         ),
                       ),
                       StreamBuilder<int>(
-                        stream: _firestoreService.getMarketCountStream(),
+                        stream: _dashboardService.getMarketCountStream(),
                         builder: (context, snapshot) => SummaryCard(
                           title: 'Active Markets',
                           value: '${snapshot.data ?? 0}',
@@ -85,7 +85,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                         ),
                       ),
                       StreamBuilder<int>(
-                        stream: _firestoreService.getPriceEntryCountStream(),
+                        stream: _dashboardService.getPriceEntryCountStream(),
                         builder: (context, snapshot) => SummaryCard(
                           title: 'Total Price Entries',
                           value: '${snapshot.data ?? 0}',
@@ -95,7 +95,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                         ),
                       ),
                       StreamBuilder<DateTime?>(
-                        stream: _firestoreService.getLastUpdatedPriceStream(),
+                        stream: _dashboardService.getLastUpdatedPriceStream(),
                         builder: (context, snapshot) {
                           final lastUpdated = snapshot.data;
                           return SummaryCard(

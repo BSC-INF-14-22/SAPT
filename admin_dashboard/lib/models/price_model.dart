@@ -1,5 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Model representing a price entry for a commodity in a specific market.
+///
+/// NOTE: This model uses DENORMALIZATION (storing commodityName and marketName).
+/// This is a critical design choice for USSD integration, allowing the backend
+/// to fetch and display full price info in a single read without expensive joins.
 class PriceModel {
   final String id;
   final String commodityId;
@@ -21,20 +26,22 @@ class PriceModel {
     required this.createdAt,
   });
 
-  factory PriceModel.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  /// Factory constructor to create a [PriceModel] from a Firestore document.
+  factory PriceModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     return PriceModel(
       id: doc.id,
       commodityId: data['commodityId'] ?? '',
-      commodityName: data['commodityName'] ?? '',
+      commodityName: data['commodityName'] ?? 'Unknown',
       marketId: data['marketId'] ?? '',
-      marketName: data['marketName'] ?? '',
+      marketName: data['marketName'] ?? 'Unknown',
       price: (data['price'] ?? 0).toDouble(),
       date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
+  /// Converts the model into a Map for Firestore storage.
   Map<String, dynamic> toMap() {
     return {
       'commodityId': commodityId,
@@ -43,7 +50,7 @@ class PriceModel {
       'marketName': marketName,
       'price': price,
       'date': Timestamp.fromDate(date),
-      'createdAt': createdAt == null ? FieldValue.serverTimestamp() : Timestamp.fromDate(createdAt),
+      'createdAt': FieldValue.serverTimestamp(),
     };
   }
 }

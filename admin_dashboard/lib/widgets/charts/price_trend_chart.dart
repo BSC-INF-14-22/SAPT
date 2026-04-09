@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../services/firestore_service.dart';
+import '../../services/dashboard_service.dart';
 import '../../services/commodity_service.dart';
 import '../../models/commodity_model.dart';
+import '../../models/price_model.dart';
 
 class PriceTrendChart extends StatefulWidget {
   const PriceTrendChart({super.key});
@@ -13,7 +14,7 @@ class PriceTrendChart extends StatefulWidget {
 }
 
 class _PriceTrendChartState extends State<PriceTrendChart> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final DashboardService _dashboardService = DashboardService();
   final CommodityService _commodityService = CommodityService();
   String? _selectedCommodityId;
 
@@ -74,8 +75,8 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
             height: 250,
             child: _selectedCommodityId == null
                 ? const Center(child: Text('Select a commodity'))
-                : StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: _firestoreService.getPriceTrends(_selectedCommodityId!),
+                : StreamBuilder<List<PriceModel>>(
+                    stream: _dashboardService.getPriceTrends(_selectedCommodityId!),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
                         return Center(
@@ -118,8 +119,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                                   if (value % 5 != 0) return const SizedBox();
                                   final int index = value.toInt();
                                   if (index >= 0 && index < data.length) {
-                                    final DateTime? date = data[index]['date'];
-                                    if (date == null) return const SizedBox();
+                                    final date = data[index].date;
                                     return Padding(
                                       padding: const EdgeInsets.only(top: 8.0),
                                       child: Text(
@@ -139,7 +139,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                           lineBarsData: [
                             LineChartBarData(
                               spots: data.asMap().entries.map((e) {
-                                return FlSpot(e.key.toDouble(), (e.value['price'] as num).toDouble());
+                                return FlSpot(e.key.toDouble(), e.value.price);
                               }).toList(),
                               isCurved: true,
                               color: Colors.black87,

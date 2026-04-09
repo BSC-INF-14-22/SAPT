@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../services/firestore_service.dart';
+import '../../services/dashboard_service.dart';
 import '../../services/commodity_service.dart';
 import '../../models/commodity_model.dart';
+import '../../models/price_model.dart';
 
 class MarketComparisonChart extends StatefulWidget {
   const MarketComparisonChart({super.key});
@@ -12,7 +13,7 @@ class MarketComparisonChart extends StatefulWidget {
 }
 
 class _MarketComparisonChartState extends State<MarketComparisonChart> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final DashboardService _dashboardService = DashboardService();
   final CommodityService _commodityService = CommodityService();
   String? _selectedCommodityId;
 
@@ -73,8 +74,8 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
             height: 250,
             child: _selectedCommodityId == null
                 ? const Center(child: Text('Select a commodity'))
-                : StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: _firestoreService.getMarketComparison(_selectedCommodityId!),
+                : StreamBuilder<List<PriceModel>>(
+                    stream: _dashboardService.getMarketComparison(_selectedCommodityId!),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
                         return Center(
@@ -97,7 +98,7 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                       return BarChart(
                         BarChartData(
                           alignment: BarChartAlignment.spaceAround,
-                          maxY: data.map((e) => e['price'] as num).reduce((a, b) => a > b ? a : b).toDouble() * 1.2,
+                          maxY: data.map((e) => e.price).reduce((a, b) => a > b ? a : b).toDouble() * 1.2,
                           gridData: const FlGridData(show: false),
                           titlesData: FlTitlesData(
                             leftTitles: AxisTitles(
@@ -121,7 +122,7 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                                     return Padding(
                                       padding: const EdgeInsets.only(top: 8.0),
                                       child: Text(
-                                        data[index]['marketName'],
+                                        data[index].marketName,
                                         style: const TextStyle(fontSize: 10, color: Colors.black45),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -140,7 +141,7 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                               x: e.key,
                               barRods: [
                                 BarChartRodData(
-                                  toY: (e.value['price'] as num).toDouble(),
+                                  toY: e.value.price,
                                   color: Colors.black87,
                                   width: 16,
                                   borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),

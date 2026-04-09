@@ -1,60 +1,82 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/commodity_model.dart';
+import 'dart:developer' as developer;
 
+/// Service for managing agricultural commodities.
+///
+/// USSD INTEGRATION:
+/// Commodities are primary keys for USSD price lookups. 
+/// Efficient indexing on the 'name' field ensures that USSD keyword searches
+/// remain responsive under high load.
 class CommodityService {
   final CollectionReference _db = FirebaseFirestore.instance.collection('commodities');
 
-  /// Fetches a real-time stream of all commodities ordered by creation date
+  /// Fetches a real-time stream of all commodities.
+  /// Optimized with a limit of 100 to prevent large reads in early scaling.
   Stream<List<CommodityModel>> getCommoditiesStream() {
     return _db
         .orderBy('createdAt', descending: true)
+        .limit(100)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => CommodityModel.fromDocument(doc))
+            .map((doc) => CommodityModel.fromFirestore(doc))
             .toList());
   }
 
-  /// Adds a new commodity if the exact name does not already exist
+  /// Adds a new commodity. Checks for duplicates first.
   Future<void> addCommodity(String name) async {
-    final trimmedName = name.trim();
-    
-    // Attempt duplicate prevention
-    final querySnapshot = await _db
-        .where('name', isEqualTo: trimmedName)
-        .limit(1)
-        .get();
+    try {
+      final trimmedName = name.trim();
+      
+      final querySnapshot = await _db
+          .where('name', isEqualTo: trimmedName)
+          .limit(1)
+          .get();
 
-    if (querySnapshot.docs.isNotEmpty) {
-      throw Exception('A commodity with this name already exists.');
+      if (querySnapshot.docs.isNotEmpty) {
+        throw 'A commodity with the name "$trimmedName" already exists.';
+      }
+
+      await _db.add({
+        'name': trimmedName,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      developer.log('Error adding commodity: $e');
+      rethrow;
     }
-
-    await _db.add({
-      'name': trimmedName,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
   }
 
-  /// Updates the name of an existing commodity
+  /// Updates an existing commodity's name.
   Future<void> updateCommodity(String id, String newName) async {
-    final trimmedName = newName.trim();
+    try {
+      final trimmedName = newName.trim();
 
-    // Optionally check if the new name is a duplicate among OTHER documents
-    final querySnapshot = await _db
-        .where('name', isEqualTo: trimmedName)
-        .limit(1)
-        .get();
+      final querySnapshot = await _db
+          .where('name', isEqualTo: trimmedName)
+          .limit(1)
+          .get();
 
-    if (querySnapshot.docs.isNotEmpty && querySnapshot.docs.first.id != id) {
-      throw Exception('Another commodity with this name already exists.');
+      if (querySnapshot.docs.isNotEmpty && querySnapshot.docs.first.id != id) {
+        throw 'Another commodity with the name "$trimmedName" already exists.';
+      }
+
+      await _db.doc(id).update({
+        'name': trimmedName,
+      });
+    } catch (e) {
+      developer.log('Error updating commodity: $e');
+      rethrow;
     }
-
-    await _db.doc(id).update({
-      'name': trimmedName,
-    });
   }
 
-  /// Deletes a commodity permanently
+  /// Deletes a commodity.
   Future<void> deleteCommodity(String id) async {
-    await _db.doc(id).delete();
+    try {
+      await _db.doc(id).delete();
+    } catch (e) {
+      developer.log('Error deleting commodity: $e');
+      rethrow;
+    }
   }
 }

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../services/firestore_service.dart';
+import '../services/dashboard_service.dart';
 
 class RecentActivity extends StatelessWidget {
   const RecentActivity({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final FirestoreService firestoreService = FirestoreService();
+    final DashboardService dashboardService = DashboardService();
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -34,7 +34,7 @@ class RecentActivity extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           StreamBuilder<List<Map<String, dynamic>>>(
-            stream: firestoreService.getRecentActivityStream(),
+            stream: dashboardService.getRecentActivityStream(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
