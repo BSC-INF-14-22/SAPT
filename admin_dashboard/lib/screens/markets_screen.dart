@@ -3,6 +3,9 @@ import '../layouts/dashboard_layout.dart';
 import '../models/market_model.dart';
 import '../services/market_service.dart';
 import '../widgets/market_form_dialog.dart';
+import '../widgets/search_bar.dart';
+import '../widgets/pagination_controls.dart';
+import '../widgets/data_table_widget.dart';
 
 class MarketsScreen extends StatefulWidget {
   const MarketsScreen({super.key});
@@ -13,6 +16,13 @@ class MarketsScreen extends StatefulWidget {
 
 class _MarketsScreenState extends State<MarketsScreen> {
   final MarketService _service = MarketService();
+
+  // Table State
+  String _searchQuery = '';
+  int _sortColumnIndex = 0;
+  bool _isAscending = true;
+  int _currentPage = 0;
+  int _rowsPerPage = 10;
 
   Future<void> _showMarketDialog([MarketModel? market]) async {
     final bool? result = await showDialog(
@@ -71,6 +81,30 @@ class _MarketsScreenState extends State<MarketsScreen> {
     }
   }
 
+  List<MarketModel> _processData(List<MarketModel> data) {
+    // 1. Filtering
+    List<MarketModel> filtered = data.where((item) {
+      final nameMatches = item.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      final locationMatches = (item.location ?? '').toLowerCase().contains(_searchQuery.toLowerCase());
+      return nameMatches || locationMatches;
+    }).toList();
+
+    // 2. Sorting
+    filtered.sort((a, b) {
+      int result = 0;
+      if (_sortColumnIndex == 0) { // Name
+        result = a.name.compareTo(b.name);
+      } else if (_sortColumnIndex == 1) { // Location
+        result = (a.location ?? '').compareTo(b.location ?? '');
+      } else if (_sortColumnIndex == 2) { // Created At
+        result = a.createdAt.compareTo(b.createdAt);
+      }
+      return _isAscending ? result : -result;
+    });
+
+    return filtered;
+  }
+
   @override
   Widget build(BuildContext context) {
     return DashboardLayout(
@@ -82,6 +116,7 @@ class _MarketsScreenState extends State<MarketsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header
               SizedBox(
                 width: double.infinity,
                 child: Wrap(
@@ -112,6 +147,18 @@ class _MarketsScreenState extends State<MarketsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Search Row
+              AppSearchBar(
+                hintText: 'Search by market name or location...',
+                onChanged: (value) => setState(() {
+                  _searchQuery = value;
+                  _currentPage = 0;
+                }),
+              ),
+              const SizedBox(height: 24),
+
+              // Table Content
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -129,65 +176,93 @@ class _MarketsScreenState extends State<MarketsScreen> {
                   child: StreamBuilder<List<MarketModel>>(
                     stream: _service.getMarketsStream(),
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator(color: Colors.black87));
-                      }
+                      final allData = snapshot.data ?? [];
+                      final processedData = _processData(allData);
 
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error loading markets: ${snapshot.error}'));
-                      }
+                      // Pagination
+                      final int start = _currentPage * _rowsPerPage;
+                      final int end = (start + _rowsPerPage) > processedData.length 
+                          ? processedData.length 
+                          : (start + _rowsPerPage);
+                      final List<MarketModel> pageData = processedData.isEmpty 
+                          ? [] 
+                          : processedData.sublist(start, end);
 
-                      final markets = snapshot.data ?? [];
-
-                      if (markets.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No markets found.\nClick "Add Market" to get started.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.black54, fontSize: 16),
-                          ),
-                        );
-                      }
-
-                      return SingleChildScrollView(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                            columns: const [
-                              DataColumn(label: Text('Name')),
-                              DataColumn(label: Text('Location')),
-                              DataColumn(label: Text('Created At')),
-                              DataColumn(label: Text('Actions')),
-                            ],
-                            rows: markets.map((mkt) {
-                              return DataRow(
-                                cells: [
-                                  DataCell(Text(mkt.name)),
-                                  DataCell(Text(mkt.location ?? '-')),
-                                  DataCell(Text('${mkt.createdAt.day.toString().padLeft(2, '0')}/${mkt.createdAt.month.toString().padLeft(2, '0')}/${mkt.createdAt.year}')),
-                                  DataCell(
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit, color: Colors.blue),
-                                          onPressed: () => _showMarketDialog(mkt),
-                                          tooltip: 'Edit',
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.delete, color: Colors.red.shade800),
-                                          onPressed: () => _confirmDelete(mkt),
-                                          tooltip: 'Delete',
-                                        ),
-                                      ],
+                      return Column(
+                        children: [
+                          Expanded(
+                            child: AppDataTable(
+                              isLoading: snapshot.connectionState == ConnectionState.waiting,
+                              columns: [
+                                DataColumn(
+                                  label: const Text('Name'),
+                                  onSort: (index, ascending) {
+                                    setState(() {
+                                      _sortColumnIndex = index;
+                                      _isAscending = ascending;
+                                    });
+                                  },
+                                ),
+                                DataColumn(
+                                  label: const Text('Location'),
+                                  onSort: (index, ascending) {
+                                    setState(() {
+                                      _sortColumnIndex = index;
+                                      _isAscending = ascending;
+                                    });
+                                  },
+                                ),
+                                DataColumn(
+                                  label: const Text('Created At'),
+                                  onSort: (index, ascending) {
+                                    setState(() {
+                                      _sortColumnIndex = index;
+                                      _isAscending = ascending;
+                                    });
+                                  },
+                                ),
+                                const DataColumn(label: Text('Actions')),
+                              ],
+                              rows: pageData.map((mkt) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(mkt.name)),
+                                    DataCell(Text(mkt.location ?? '-')),
+                                    DataCell(Text('${mkt.createdAt.day.toString().padLeft(2, '0')}/${mkt.createdAt.month.toString().padLeft(2, '0')}/${mkt.createdAt.year}')),
+                                    DataCell(
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit, color: Colors.blue),
+                                            onPressed: () => _showMarketDialog(mkt),
+                                            tooltip: 'Edit',
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.delete, color: Colors.red.shade800),
+                                            onPressed: () => _confirmDelete(mkt),
+                                            tooltip: 'Delete',
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ]
-                              );
-                            }).toList(),
+                                  ]
+                                );
+                              }).toList(),
+                            ),
                           ),
-                        ),
+                          if (processedData.isNotEmpty)
+                            PaginationControls(
+                              currentPage: _currentPage,
+                              totalItems: processedData.length,
+                              rowsPerPage: _rowsPerPage,
+                              onPageChanged: (page) => setState(() => _currentPage = page),
+                              onRowsPerPageChanged: (value) => setState(() {
+                                _rowsPerPage = value!;
+                                _currentPage = 0;
+                              }),
+                            ),
+                        ],
                       );
                     },
                   ),
