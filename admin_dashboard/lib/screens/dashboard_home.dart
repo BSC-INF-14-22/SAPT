@@ -90,7 +90,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 24,
                       mainAxisSpacing: 24,
-                      childAspectRatio: constraints.maxWidth >= 800 ? 1.5 : 2.5,
+                      childAspectRatio: constraints.maxWidth >= 800 ? 1.5 : 2.0,
                       children: [
                         SummaryCard(
                           title: 'Total Commodities',

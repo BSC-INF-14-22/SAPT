@@ -93,8 +93,9 @@ class SaptAdminDashboard extends StatelessWidget {
           Theme.of(context).textTheme,
         ),
       ),
-      initialRoute: '/dashboard',
+      initialRoute: '/',
       routes: {
+        '/': (context) => _authGuard(const DashboardHome()),
         '/dashboard': (context) => _authGuard(const DashboardHome()),
         '/commodities': (context) => _authGuard(const CommoditiesScreen()),
         '/markets': (context) => _authGuard(const MarketsScreen()),

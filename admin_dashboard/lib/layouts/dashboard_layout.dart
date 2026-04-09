@@ -20,7 +20,7 @@ class DashboardLayout extends StatefulWidget {
 
 class _DashboardLayoutState extends State<DashboardLayout> {
   // Maintained statically so routing changes don't flash reset the sidebar
-  static bool _isSidebarOpen = true;
+  static bool _isSidebarOpen = false;
 
   @override
   Widget build(BuildContext context) {

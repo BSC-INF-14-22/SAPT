@@ -34,10 +34,12 @@ class SummaryCard extends StatelessWidget {
         ],
       ),
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
@@ -90,6 +92,7 @@ class SummaryCard extends StatelessWidget {
             ),
           ]
         ],
+      ),
       ),
     );
   }
