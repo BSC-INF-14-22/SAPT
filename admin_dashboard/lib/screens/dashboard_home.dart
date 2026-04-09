@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 import '../widgets/summary_card.dart';
+import '../layouts/dashboard_layout.dart';
 
 class DashboardHome extends StatefulWidget {
   const DashboardHome({super.key});
@@ -56,72 +57,10 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Overview',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.black87),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-            tooltip: 'Refresh Data',
-          ),
-          const SizedBox(width: 16),
-          const CircleAvatar(
-            backgroundColor: Color(0xFFE53935), // Red
-            child: Icon(Icons.person, color: Colors.white),
-          ),
-          const SizedBox(width: 24),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color(0xFF000000), // Black
-              ),
-              child: Text(
-                'SAPT Admin\nDashboard',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text('Overview'),
-              selected: true,
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.shopping_basket),
-              title: const Text('Commodities'),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.store),
-              title: const Text('Markets'),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {},
-            ),
-          ],
-        ),
-      ),
-      body: SafeArea(
+    return DashboardLayout(
+      title: 'Overview',
+      currentRoute: '/dashboard',
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
