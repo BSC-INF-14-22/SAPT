@@ -229,7 +229,7 @@ class LandingScreen extends StatelessWidget {
               child: const Column(
                 children: [
                   Text(
-                    '© 2026 SAPT - Malawi Agricultural Intelligence System',
+                    '© 2026 SAPPT - Malawi Agricultural Intelligence System',
                     style: TextStyle(color: Colors.black54),
                   ),
                 ],
