@@ -1,0 +1,24 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "smart-agri-price-tracker",
+          "appId": "1:752487746717:android:eb6f5721fd049f9eb05874",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "smart-agri-price-tracker",
+          "configurations": {
+            "android": "1:752487746717:android:eb6f5721fd049f9eb05874"
+          }
+        }
+      }
+    }
+  }
+}

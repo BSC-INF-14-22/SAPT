@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      // Fetches the role from the users collection for the currently logged in user
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && getUserData().role == 'Admin';
+    }
+    
+    function isCooperative() {
+      return isSignedIn() && getUserData().role == 'Cooperative Officer';
+    }
+    
+    function isFarmer() {
+      return isSignedIn() && getUserData().role == 'Farmer';
+    }
+
+    // ==========================================
+    // GLOBAL ADMIN OVERRIDE
+    // ==========================================
+    
+    // Admins have full, unrestricted read and write access to all collections
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
+    
+    match /users/{userId} {
+      // Anyone can create their profile when they first register
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Users can only view and edit their own profile data
+      allow read, update: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ==========================================
+    // PRICES COLLECTION
+    // ==========================================
+    
+    match /prices/{priceId} {
+      // Rule 1: ANY logged-in user (including Farmers) can read prices IF they are 'approved'
+      allow read: if isSignedIn() && resource.data.status == 'approved';
+      
+      // Rule 2: Cooperative users can read ALL of their own records (including pending/rejected)
+      allow read: if isCooperative() && resource.data.uploadedBy == request.auth.uid;
+      
+      // Rule 3: Cooperative users can upload new prices (must tag themselves as the uploader)
+      allow create: if isCooperative() && request.resource.data.uploadedBy == request.auth.uid;
+      
+      // Rule 4: Cooperative users can edit their own existing records
+      allow update: if isCooperative() && resource.data.uploadedBy == request.auth.uid;
+      
+      // Note: Only Admins can delete prices, handled by the Global Admin Override above.
+    }
+    
+    // ==========================================
+    // NOTIFICATIONS COLLECTION
+    // ==========================================
+    
+    match /notifications/{notificationId} {
+      // Users can view and delete notifications assigned directly to their UID
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      
+      // Users can update their notifications, but ONLY to change the 'readStatus'
+      allow update: if isSignedIn() 
+                    && resource.data.uid == request.auth.uid 
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readStatus']);
+    }
+  }
+}

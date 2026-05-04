@@ -1,0 +1,194 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:smart_agri_price_tracker/core/services/firestore_service.dart';
+import 'package:smart_agri_price_tracker/core/services/auth_service.dart';
+
+class NotificationsPage extends StatelessWidget {
+  const NotificationsPage({super.key});
+
+  void _markAsRead(String docId) {
+    FirestoreService().updateData('notifications', docId, {'readStatus': true});
+  }
+
+  void _markAllAsRead(List<QueryDocumentSnapshot> docs) {
+    for (var doc in docs) {
+      if (doc['readStatus'] == false) {
+        _markAsRead(doc.id);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = AuthService().currentUser;
+
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text('Please log in to view notifications.')));
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notifications'),
+      ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('notifications')
+            .where('uid', isEqualTo: user.uid)
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            // Firestore requires an index for compound queries (where + orderBy).
+            // If the index is missing, it will throw an error with a direct link to create it.
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text(
+                  'Error loading notifications. If this is a new feature, you may need to click the link in the debug console to create a Firestore Index.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
+            );
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+
+          if (docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  const Text('No new notifications', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          final unreadCount = docs.where((d) => d['readStatus'] == false).length;
+
+          return Column(
+            children: [
+              if (unreadCount > 0)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'You have $unreadCount unread ${unreadCount == 1 ? 'message' : 'messages'}',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: theme.primaryColor),
+                      ),
+                      TextButton(
+                        onPressed: () => _markAllAsRead(docs),
+                        child: const Text('Mark all as read'),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: docs.length,
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data();
+                    return _buildNotificationItem(context, doc.id, data);
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNotificationItem(BuildContext context, String docId, Map<String, dynamic> data) {
+    final theme = Theme.of(context);
+    final title = data['title'] ?? 'Notification';
+    final message = data['message'] ?? '';
+    final isRead = data['readStatus'] ?? false;
+    
+    String formattedDate = 'Just now';
+    if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+      formattedDate = DateFormat('MMM d, h:mm a').format((data['createdAt'] as Timestamp).toDate());
+    }
+
+    return Dismissible(
+      key: Key(docId),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (direction) {
+        FirestoreService().deleteData('notifications', docId);
+      },
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              backgroundColor: isRead ? Colors.grey[200] : theme.primaryColor.withAlpha(30),
+              child: Icon(
+                Icons.notifications,
+                color: isRead ? Colors.grey : theme.primaryColor,
+              ),
+            ),
+            if (!isRead)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+            color: isRead ? Colors.grey[800] : Colors.black,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text(message, style: TextStyle(color: isRead ? Colors.grey[600] : Colors.black87)),
+            const SizedBox(height: 4),
+            Text(formattedDate, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+          onPressed: () => FirestoreService().deleteData('notifications', docId),
+          tooltip: 'Delete notification',
+        ),
+        onTap: () {
+          if (!isRead) {
+            _markAsRead(docId);
+          }
+        },
+      ),
+    );
+  }
+}
