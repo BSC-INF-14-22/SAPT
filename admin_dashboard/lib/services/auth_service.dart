@@ -25,6 +25,10 @@ class AuthService {
     }
   }
 
+  /// Alias for signInWithEmailAndPassword
+  Future<UserCredential?> login(String email, String password) => 
+      signInWithEmailAndPassword(email, password);
+
   /// Sign up with email and password
   Future<UserCredential?> signUpWithEmailAndPassword(
       String email, String password) async {
@@ -39,6 +43,10 @@ class AuthService {
       throw 'An error occurred: $e';
     }
   }
+
+  /// Alias for signUpWithEmailAndPassword
+  Future<UserCredential?> register(String email, String password) => 
+      signUpWithEmailAndPassword(email, password);
 
   /// Sign out the current user
   Future<void> signOut() async {

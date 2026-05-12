@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
+import 'cooperative_dashboard.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,18 +14,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String email = '';
   String password = '';
-  String role = 'cooperative';
+  bool _isLoading = false;
 
   Future<void> register() async {
-    final user = await _auth.register(email, password);
+    setState(() => _isLoading = true);
+    try {
+      final user = await _auth.register(email, password);
 
-    if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'email': email,
-        'role': role,
-      });
-
-      Navigator.pop(context);
+      if (user != null) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CooperativeDashboard()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -37,19 +46,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(onChanged: (v) => email = v, decoration: const InputDecoration(labelText: "Email")),
-            TextField(onChanged: (v) => password = v, obscureText: true, decoration: const InputDecoration(labelText: "Password")),
-
-            DropdownButton<String>(
-              value: role,
-              items: const [
-                DropdownMenuItem(value: 'cooperative', child: Text("Cooperative")),
-                DropdownMenuItem(value: 'admin', child: Text("Admin")),
-              ],
-              onChanged: (val) => setState(() => role = val!),
+            TextField(
+              onChanged: (v) => email = v,
+              decoration: const InputDecoration(labelText: "Email"),
+              keyboardType: TextInputType.emailAddress,
             ),
-
-            ElevatedButton(onPressed: register, child: const Text("Register"))
+            TextField(
+              onChanged: (v) => password = v,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Password"),
+            ),
+            const SizedBox(height: 20),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: register,
+                    child: const Text("Register"),
+                  ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Already have an account? Login"),
+            ),
           ],
         ),
       ),

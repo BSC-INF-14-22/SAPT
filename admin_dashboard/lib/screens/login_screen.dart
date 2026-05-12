@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'cooperative_dashboard.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,15 +14,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String email = '';
   String password = '';
+  bool _isLoading = false;
 
   Future<void> login() async {
-    final user = await _auth.login(email, password);
+    setState(() => _isLoading = true);
+    try {
+      final user = await _auth.login(email, password);
 
-    if (user != null) {
-      Navigator.pushReplacement(
+      if (user != null) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CooperativeDashboard()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
         context,
-        MaterialPageRoute(builder: (_) => const CooperativeDashboard()),
-      );
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -35,14 +46,20 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(onChanged: (v) => email = v, decoration: const InputDecoration(labelText: "Email")),
-            TextField(onChanged: (v) => password = v, obscureText: true, decoration: const InputDecoration(labelText: "Password")),
+            TextField(
+              onChanged: (v) => email = v,
+              decoration: const InputDecoration(labelText: "Email"),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            TextField(
+              onChanged: (v) => password = v,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Password"),
+            ),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: login, child: const Text("Login")),
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
-              child: const Text("Create Account"),
-            )
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(onPressed: login, child: const Text("Login")),
           ],
         ),
       ),

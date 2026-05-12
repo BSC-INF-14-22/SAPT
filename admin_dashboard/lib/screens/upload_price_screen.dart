@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -43,7 +45,7 @@ class _UploadPriceScreenState extends State<UploadPriceScreen> {
             _input("Unit", (v) => unit = v),
             _input("Market", (v) => market = v),
             _input("District", (v) => district = v),
-            ElevatedButton(onPressed: submit, child: const Text("Submit"))
+            ElevatedButton(onPressed: submit, child: const Text("Submit")),
           ],
         ),
       ),
@@ -51,6 +53,9 @@ class _UploadPriceScreenState extends State<UploadPriceScreen> {
   }
 
   Widget _input(String label, Function(String) f) {
-    return TextField(onChanged: f, decoration: InputDecoration(labelText: label));
+    return TextField(
+      onChanged: f,
+      decoration: InputDecoration(labelText: label),
+    );
   }
 }

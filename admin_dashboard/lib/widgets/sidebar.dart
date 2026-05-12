@@ -25,7 +25,7 @@ class Sidebar extends StatelessWidget {
         ),
       ),
       selected: isSelected,
-      selectedTileColor: Colors.white.withOpacity(0.1),
+      selectedTileColor: Colors.white.withValues(alpha: 0.1),
       onTap: () {
         if (!isSelected) {
           Navigator.pushReplacementNamed(context, route);
@@ -82,3 +82,4 @@ class Sidebar extends StatelessWidget {
     );
   }
 }
+

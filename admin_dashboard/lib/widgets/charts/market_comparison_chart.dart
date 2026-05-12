@@ -26,7 +26,7 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -60,10 +60,14 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                     items: commodities.map((c) {
                       return DropdownMenuItem(
                         value: c.id,
-                        child: Text(c.name, style: const TextStyle(fontSize: 14)),
+                        child: Text(
+                          c.name,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       );
                     }).toList(),
-                    onChanged: (val) => setState(() => _selectedCommodityId = val),
+                    onChanged: (val) =>
+                        setState(() => _selectedCommodityId = val),
                   );
                 },
               ),
@@ -75,13 +79,18 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
             child: _selectedCommodityId == null
                 ? const Center(child: Text('Select a commodity'))
                 : StreamBuilder<List<PriceModel>>(
-                    stream: _dashboardService.getMarketComparison(_selectedCommodityId!),
+                    stream: _dashboardService.getMarketComparison(
+                      _selectedCommodityId!,
+                    ),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
                         return Center(
                           child: Text(
                             'Error: ${snapshot.error}',
-                            style: const TextStyle(color: Colors.red, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
                           ),
                         );
                       }
@@ -92,13 +101,20 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
 
                       final data = snapshot.data ?? [];
                       if (data.isEmpty) {
-                        return const Center(child: Text('No comparative data available'));
+                        return const Center(
+                          child: Text('No comparative data available'),
+                        );
                       }
 
                       return BarChart(
                         BarChartData(
                           alignment: BarChartAlignment.spaceAround,
-                          maxY: data.map((e) => e.price).reduce((a, b) => a > b ? a : b).toDouble() * 1.2,
+                          maxY:
+                              data
+                                  .map((e) => e.price)
+                                  .reduce((a, b) => a > b ? a : b)
+                                  .toDouble() *
+                              1.2,
                           gridData: const FlGridData(show: false),
                           titlesData: FlTitlesData(
                             leftTitles: AxisTitles(
@@ -108,7 +124,10 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                                 getTitlesWidget: (value, meta) {
                                   return Text(
                                     value.toInt().toString(),
-                                    style: const TextStyle(fontSize: 10, color: Colors.black45),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black45,
+                                    ),
                                   );
                                 },
                               ),
@@ -123,7 +142,10 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                                       padding: const EdgeInsets.only(top: 8.0),
                                       child: Text(
                                         data[index].marketName,
-                                        style: const TextStyle(fontSize: 10, color: Colors.black45),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.black45,
+                                        ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     );
@@ -132,8 +154,12 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                                 },
                               ),
                             ),
-                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
                           ),
                           borderData: FlBorderData(show: false),
                           barGroups: data.asMap().entries.map((e) {
@@ -144,7 +170,9 @@ class _MarketComparisonChartState extends State<MarketComparisonChart> {
                                   toY: e.value.price,
                                   color: Colors.black87,
                                   width: 16,
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
                                 ),
                               ],
                             );

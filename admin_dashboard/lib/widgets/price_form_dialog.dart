@@ -60,7 +60,9 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCommodityId == null || _selectedMarketId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select both a commodity and a market.')),
+        const SnackBar(
+          content: Text('Please select both a commodity and a market.'),
+        ),
       );
       return;
     }
@@ -145,6 +147,7 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
                       );
                     }
                     return DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
                       value: _selectedCommodityId,
                       decoration: const InputDecoration(labelText: 'Commodity'),
                       items: commodities.map((c) {
@@ -156,7 +159,9 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
                       onChanged: (value) {
                         setState(() {
                           _selectedCommodityId = value;
-                          _selectedCommodityName = commodities.firstWhere((c) => c.id == value).name;
+                          _selectedCommodityName = commodities
+                              .firstWhere((c) => c.id == value)
+                              .name;
                         });
                       },
                       validator: (value) => value == null ? 'Required' : null,
@@ -182,6 +187,7 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
                       );
                     }
                     return DropdownButtonFormField<String>(
+                      // ignore: deprecated_member_use
                       value: _selectedMarketId,
                       decoration: const InputDecoration(labelText: 'Market'),
                       items: markets.map((m) {
@@ -193,7 +199,9 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
                       onChanged: (value) {
                         setState(() {
                           _selectedMarketId = value;
-                          _selectedMarketName = markets.firstWhere((m) => m.id == value).name;
+                          _selectedMarketName = markets
+                              .firstWhere((m) => m.id == value)
+                              .name;
                         });
                       },
                       validator: (value) => value == null ? 'Required' : null,
@@ -209,7 +217,9 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
                     prefixText: 'MWK ',
                     suffixText: ' /kg',
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) return 'Required';
                     final n = double.tryParse(value);
@@ -222,7 +232,9 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
                 // Date Picker
                 ListTile(
                   title: const Text('Date'),
-                  subtitle: Text('${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
+                  subtitle: Text(
+                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                  ),
                   trailing: const Icon(Icons.calendar_today),
                   contentPadding: EdgeInsets.zero,
                   onTap: () => _selectDate(context),
@@ -247,7 +259,10 @@ class _PriceFormDialogState extends State<PriceFormDialog> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : Text(isEditMode ? 'Update' : 'Add'),
         ),

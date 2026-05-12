@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../services/dashboard_service.dart';
 import '../../services/commodity_service.dart';
 import '../../models/commodity_model.dart';
@@ -27,7 +27,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -147,7 +147,7 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
                               dotData: const FlDotData(show: false),
                               belowBarData: BarAreaData(
                                 show: true,
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                               ),
                             ),
                           ],
@@ -161,3 +161,5 @@ class _PriceTrendChartState extends State<PriceTrendChart> {
     );
   }
 }
+
+

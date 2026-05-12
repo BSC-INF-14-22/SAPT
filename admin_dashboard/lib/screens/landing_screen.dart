@@ -21,7 +21,7 @@ class LandingScreen extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               // ignore: deprecated_member_use
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -51,7 +51,7 @@ class LandingScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 // ignore: deprecated_member_use
-                color: primary ? Colors.white.withOpacity(0.9) : Colors.black54,
+                color: primary ? Colors.white.withValues(alpha: 0.9) : Colors.black54,
               ),
             ),
           ],
@@ -241,3 +241,4 @@ class LandingScreen extends StatelessWidget {
     );
   }
 }
+
