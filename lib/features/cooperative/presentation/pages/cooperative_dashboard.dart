@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smart_agri_price_tracker/core/services/auth_service.dart';
 import 'package:smart_agri_price_tracker/core/routing/app_router.dart';
+import 'package:smart_agri_price_tracker/core/services/notification_service.dart';
 
 class CooperativeDashboard extends StatelessWidget {
   final Map<String, dynamic> userData;
@@ -121,12 +122,20 @@ class CooperativeDashboard extends StatelessWidget {
                     Navigator.pushNamed(context, AppRouter.myPrices);
                   },
                 ),
-                _buildDashboardCard(
-                  context,
-                  'Notifications',
-                  Icons.notifications_active_outlined,
-                  Colors.red,
-                  () => Navigator.pushNamed(context, AppRouter.notifications),
+                StreamBuilder<int>(
+                  stream: NotificationService().getUnreadCountStream(),
+                  initialData: 0,
+                  builder: (context, snapshot) {
+                    return _buildDashboardCard(
+                      context,
+                      'Notifications',
+                      Icons.notifications_active_outlined,
+                      Colors.red,
+                      () =>
+                          Navigator.pushNamed(context, AppRouter.notifications),
+                      notificationCount: snapshot.data ?? 0,
+                    );
+                  },
                 ),
               ],
             ),
@@ -198,8 +207,9 @@ class CooperativeDashboard extends StatelessWidget {
     String title,
     IconData icon,
     Color color,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    int notificationCount = 0,
+  }) {
     return Card(
       elevation: 2,
       child: InkWell(
@@ -207,26 +217,70 @@ class CooperativeDashboard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(25),
-                  shape: BoxShape.circle,
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withAlpha(25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: color, size: 32),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(icon, color: color, size: 32),
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+              if (notificationCount > 0)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(51),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 24,
+                      minHeight: 24,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$notificationCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
