@@ -30,9 +30,60 @@ class _FarmerTrendsPageState extends State<FarmerTrendsPage> {
           children: [
             _buildSelectors(theme),
             const SizedBox(height: 32),
-            _buildChartSection(theme),
-            const SizedBox(height: 32),
-            _buildStatsSection(theme),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('price_history')
+                  .where('cropName', isEqualTo: _selectedCrop)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                // Sort in-memory to avoid composite index requirement
+                final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(snapshot.data?.docs ?? []);
+                docs.sort((a, b) {
+                  final aTime = a.data()['date'] as Timestamp?;
+                  final bTime = b.data()['date'] as Timestamp?;
+                  if (aTime == null) return 1;
+                  if (bTime == null) return -1;
+                  return aTime.compareTo(bTime); // Ascending
+                });
+
+                if (docs.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40.0),
+                      child: Text('No historical data available for this crop.'),
+                    ),
+                  );
+                }
+
+                // Calculate Stats
+                final prices = docs.map((e) => double.tryParse(e.data()['price'].toString()) ?? 0.0).toList();
+                final highest = prices.reduce((a, b) => a > b ? a : b);
+                final lowest = prices.reduce((a, b) => a < b ? a : b);
+                final projection = _generateProjection(docs);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildChart(theme, docs),
+                    const SizedBox(height: 32),
+                    _buildStatsSection(theme, highest, lowest, projection),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -117,7 +168,50 @@ class _FarmerTrendsPageState extends State<FarmerTrendsPage> {
     );
   }
 
-  Widget _buildChartSection(ThemeData theme) {
+  String _generateProjection(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    if (docs.length < 3) return 'Collecting more data for accurate projections...';
+
+    final prices = docs.map((d) => double.tryParse(d.data()['price'].toString()) ?? 0.0).toList();
+    final dates = docs.map((d) => (d.data()['date'] as Timestamp).toDate()).toList();
+
+    // Simple Linear Regression: y = mx + c
+    int n = prices.length;
+    double sumX = 0; // days from start
+    double sumY = 0; // prices
+    double sumXY = 0;
+    double sumX2 = 0;
+
+    DateTime startDate = dates.first;
+    for (int i = 0; i < n; i++) {
+      double x = dates[i].difference(startDate).inDays.toDouble();
+      double y = prices[i];
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+    }
+
+    double denominator = (n * sumX2 - sumX * sumX);
+    if (denominator == 0) return 'Prices for $_selectedCrop are holding steady.';
+
+    double slope = (n * sumXY - sumX * sumY) / denominator;
+
+    // Predict for next week (7 days after the last data point)
+    double lastX = dates.last.difference(startDate).inDays.toDouble();
+    double predictionX = lastX + 7;
+    double intercept = (sumY - slope * sumX) / n;
+    double predictedPrice = slope * predictionX + intercept;
+
+    double lastPrice = prices.last;
+    double percentageChange = ((predictedPrice - lastPrice) / lastPrice) * 100;
+
+    String trend = slope > 0 ? 'rise' : 'fall';
+    if (slope.abs() < 0.1) return 'Prices for $_selectedCrop are expected to remain stable next week.';
+
+    return 'Prices for $_selectedCrop are projected to $trend by ${percentageChange.abs().toStringAsFixed(1)}% next week based on market velocity.';
+  }
+
+  Widget _buildChart(ThemeData theme, List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
     return Container(
       height: 300,
       padding: const EdgeInsets.only(right: 16, top: 16, bottom: 8),
@@ -132,96 +226,68 @@ class _FarmerTrendsPageState extends State<FarmerTrendsPage> {
           ),
         ],
       ),
-      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('price_history')
-            .where('cropName', isEqualTo: _selectedCrop)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          // Sort in-memory to avoid composite index requirement
-          final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(snapshot.data?.docs ?? []);
-          docs.sort((a, b) {
-            final aTime = a.data()['date'] as Timestamp?;
-            final bTime = b.data()['date'] as Timestamp?;
-            if (aTime == null) return 1;
-            if (bTime == null) return -1;
-            return aTime.compareTo(bTime); // Ascending
-          });
-
-          if (docs.isEmpty) {
-            return const Center(child: Text('No historical data available.'));
-          }
-
-          return LineChart(
-            LineChartData(
-              gridData: const FlGridData(show: false),
-              titlesData: FlTitlesData(
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      if (value.toInt() >= 0 && value.toInt() < docs.length) {
-                        final date = (docs[value.toInt()]['date'] as Timestamp).toDate();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            DateFormat('dd/MM').format(date),
-                            style: const TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                        );
-                      }
-                      return const Text('');
-                    },
-                    reservedSize: 30,
-                  ),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) => Text(
-                      value.toInt().toString(),
-                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                    reservedSize: 40,
-                  ),
-                ),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(show: false),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  if (value.toInt() >= 0 && value.toInt() < docs.length) {
+                    final date = (docs[value.toInt()]['date'] as Timestamp).toDate();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        DateFormat('dd/MM').format(date),
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    );
+                  }
+                  return const Text('');
+                },
+                reservedSize: 30,
               ),
-              borderData: FlBorderData(show: false),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: docs.asMap().entries.map((e) {
-                    final price = double.tryParse(e.value['price'].toString()) ?? 0;
-                    return FlSpot(e.key.toDouble(), price);
-                  }).toList(),
-                  isCurved: true,
-                  color: theme.primaryColor,
-                  barWidth: 4,
-                  isStrokeCapRound: true,
-                  dotData: const FlDotData(show: true),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: theme.primaryColor.withAlpha(25),
-                  ),
-                ),
-              ],
             ),
-          );
-        },
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) => Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+                reservedSize: 40,
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: docs.asMap().entries.map((e) {
+                final price = double.tryParse(e.value.data()['price'].toString()) ?? 0;
+                return FlSpot(e.key.toDouble(), price);
+              }).toList(),
+              isCurved: true,
+              color: theme.primaryColor,
+              barWidth: 4,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: true),
+              belowBarData: BarAreaData(
+                show: true,
+                color: theme.primaryColor.withAlpha(25),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStatsSection(ThemeData theme) {
+  Widget _buildStatsSection(ThemeData theme, double highest, double lowest, String projection) {
+    final currencyFormat = NumberFormat.currency(symbol: 'MK ', decimalDigits: 0);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -234,21 +300,21 @@ class _FarmerTrendsPageState extends State<FarmerTrendsPage> {
           children: [
             _buildStatCard(
               'Highest',
-              'MK 1,200',
+              currencyFormat.format(highest),
               Icons.arrow_upward,
               Colors.green,
             ),
             const SizedBox(width: 16),
             _buildStatCard(
               'Lowest',
-              'MK 400',
+              currencyFormat.format(lowest),
               Icons.arrow_downward,
               Colors.red,
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        _buildTrendAlert(theme),
+        const SizedBox(height: 24),
+        _buildTrendAlert(theme, projection),
       ],
     );
   }
@@ -282,22 +348,32 @@ class _FarmerTrendsPageState extends State<FarmerTrendsPage> {
     );
   }
 
-  Widget _buildTrendAlert(ThemeData theme) {
+  Widget _buildTrendAlert(ThemeData theme, String projection) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.amber.withAlpha(25),
+        color: Colors.blue.withAlpha(25),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withAlpha(50)),
+        border: Border.all(color: Colors.blue.withAlpha(50)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lightbulb_outline, color: Colors.amber),
+          const Icon(Icons.analytics_outlined, color: Colors.blue),
           const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Prices for Maize are projected to rise by 5% next week in Lilongwe.',
-              style: TextStyle(fontSize: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Market Projection',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  projection,
+                  style: const TextStyle(fontSize: 14, height: 1.4),
+                ),
+              ],
             ),
           ),
         ],

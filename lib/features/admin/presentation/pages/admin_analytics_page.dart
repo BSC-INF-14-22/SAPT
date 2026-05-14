@@ -293,111 +293,141 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
   }
 
   Widget _buildTopCropsSearchedChart(ThemeData theme) {
-    final mockData = [
-      {'crop': 'Maize', 'searches': 450},
-      {'crop': 'Beans', 'searches': 320},
-      {'crop': 'Rice', 'searches': 280},
-      {'crop': 'Soybeans', 'searches': 190},
-      {'crop': 'Tobacco', 'searches': 110},
-    ];
-
-    final titlesData = FlTitlesData(
-      show: true,
-      bottomTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          getTitlesWidget: (double value, TitleMeta meta) {
-            final index = value.toInt();
-            if (index < 0 || index >= mockData.length) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                mockData[index]['crop'] as String, 
-                style: const TextStyle(fontSize: 10)
-              ),
-            );
-          },
-        ),
-      ),
-      leftTitles: AxisTitles(
-        sideTitles: SideTitles(
-          showTitles: true,
-          reservedSize: 30,
-          getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
-        ),
-      ),
-      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-    );
-
     return Container(
       height: 300,
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
-      child: Column(
-        children: [
-          const Align(
-            alignment: Alignment.centerRight,
-            child: Text('Last 30 Days', style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _isTopCropsLineChart
-                ? LineChart(
-                    LineChartData(
-                      minX: 0,
-                      maxX: (mockData.length - 1).toDouble(),
-                      minY: 0,
-                      maxY: 500,
-                      gridData: const FlGridData(show: true, drawVerticalLine: false),
-                      titlesData: titlesData,
-                      borderData: FlBorderData(show: false),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: List.generate(mockData.length, (index) {
-                            return FlSpot(index.toDouble(), (mockData[index]['searches'] as int).toDouble());
-                          }),
-                          isCurved: true,
-                          color: Colors.amber,
-                          barWidth: 4,
-                          isStrokeCapRound: true,
-                          dotData: const FlDotData(show: true),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: Colors.amber.withAlpha(50),
-                          ),
-                        ),
-                      ],
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('prices').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const Center(child: Text('No price data available for analytics.'));
+          }
+
+          // Aggregate crop submissions
+          Map<String, int> cropCounts = {};
+          for (var doc in docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final crop = data['cropName'] as String? ?? 'Unknown';
+            cropCounts[crop] = (cropCounts[crop] ?? 0) + 1;
+          }
+
+          // Sort and take top 5
+          final sortedCrops = cropCounts.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value));
+          
+          final topCrops = sortedCrops.take(5).toList();
+
+          if (topCrops.isEmpty) {
+            return const Center(child: Text('Insufficient data for crop trends.'));
+          }
+
+          final maxY = topCrops.map((e) => e.value).reduce((a, b) => a > b ? a : b).toDouble() + 2;
+
+          final titlesData = FlTitlesData(
+            show: true,
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (double value, TitleMeta meta) {
+                  final index = value.toInt();
+                  if (index < 0 || index >= topCrops.length) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      topCrops[index].key, 
+                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)
                     ),
-                  )
-                : BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: 500,
-                      barTouchData: BarTouchData(enabled: false),
-                      titlesData: titlesData,
-                      gridData: const FlGridData(show: false),
-                      borderData: FlBorderData(show: false),
-                      barGroups: List.generate(mockData.length, (index) {
-                        return BarChartGroupData(
-                          x: index,
-                          barRods: [
-                            BarChartRodData(
-                              toY: (mockData[index]['searches'] as int).toDouble(),
-                              color: Colors.amber,
-                              width: 20,
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  );
+                },
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                getTitlesWidget: (value, meta) => Text(
+                  value.toInt().toString(), 
+                  style: const TextStyle(fontSize: 10)
+                ),
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          );
+
+          return Column(
+            children: [
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Text('Most Active Crops', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _isTopCropsLineChart
+                    ? LineChart(
+                        LineChartData(
+                          minX: 0,
+                          maxX: (topCrops.length - 1).toDouble(),
+                          minY: 0,
+                          maxY: maxY,
+                          gridData: const FlGridData(show: true, drawVerticalLine: false),
+                          titlesData: titlesData,
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: List.generate(topCrops.length, (index) {
+                                return FlSpot(index.toDouble(), topCrops[index].value.toDouble());
+                              }),
+                              isCurved: true,
+                              color: Colors.orange,
+                              barWidth: 4,
+                              isStrokeCapRound: true,
+                              dotData: const FlDotData(show: true),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: Colors.orange.withAlpha(50),
+                              ),
                             ),
                           ],
-                        );
-                      }),
-                    ),
-                  ),
-          ),
-        ],
+                        ),
+                      )
+                    : BarChart(
+                        BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          maxY: maxY,
+                          barTouchData: BarTouchData(enabled: false),
+                          titlesData: titlesData,
+                          gridData: const FlGridData(show: false),
+                          borderData: FlBorderData(show: false),
+                          barGroups: List.generate(topCrops.length, (index) {
+                            return BarChartGroupData(
+                              x: index,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: topCrops[index].value.toDouble(),
+                                  color: Colors.orange,
+                                  width: 20,
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
