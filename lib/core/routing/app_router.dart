@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:smart_agri_price_tracker/features/home/presentation/pages/home_page.dart';
 import 'package:smart_agri_price_tracker/features/splash/presentation/pages/splash_screen.dart';
 import 'package:smart_agri_price_tracker/features/auth/presentation/pages/landing_page.dart';
 import 'package:smart_agri_price_tracker/features/auth/presentation/pages/login_page.dart';
@@ -93,10 +92,8 @@ class AppRouter {
       case editPrice:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
-          builder: (_) => EditPricePage(
-            docId: args['docId'],
-            initialData: args['data'],
-          ),
+          builder: (_) =>
+              EditPricePage(docId: args['docId'], initialData: args['data']),
         );
       default:
         return MaterialPageRoute(

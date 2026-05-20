@@ -20,9 +20,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('System Analytics'),
-      ),
+      appBar: AppBar(title: const Text('System Analytics')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -30,31 +28,33 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
           children: [
             Text(
               'User Demographics',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
             _buildUsersByRoleChart(theme),
-            
+
             const SizedBox(height: 32),
             _buildSectionHeader(
-              'Activity: Daily Price Submissions', 
-              theme, 
-              _isDailySubmissionsLineChart, 
-              (val) => setState(() => _isDailySubmissionsLineChart = val)
+              'Activity: Daily Price Submissions',
+              theme,
+              _isDailySubmissionsLineChart,
+              (val) => setState(() => _isDailySubmissionsLineChart = val),
             ),
             const SizedBox(height: 16),
             _buildDailySubmissionsChart(theme),
 
             const SizedBox(height: 32),
             _buildSectionHeader(
-              'Search Trends: Top Crops', 
-              theme, 
-              _isTopCropsLineChart, 
-              (val) => setState(() => _isTopCropsLineChart = val)
+              'Search Trends: Top Crops',
+              theme,
+              _isTopCropsLineChart,
+              (val) => setState(() => _isTopCropsLineChart = val),
             ),
             const SizedBox(height: 16),
             _buildTopCropsSearchedChart(theme),
-            
+
             const SizedBox(height: 40),
           ],
         ),
@@ -62,14 +62,21 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
     );
   }
 
-  Widget _buildSectionHeader(String title, ThemeData theme, bool isLineChart, Function(bool) onToggle) {
+  Widget _buildSectionHeader(
+    String title,
+    ThemeData theme,
+    bool isLineChart,
+    Function(bool) onToggle,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
           child: Text(
             title,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         Row(
@@ -78,7 +85,7 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
             Switch(
               value: isLineChart,
               onChanged: onToggle,
-              activeColor: theme.primaryColor,
+              activeThumbColor: theme.primaryColor,
             ),
             const Icon(Icons.show_chart, size: 20, color: Colors.grey),
           ],
@@ -107,14 +114,18 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
             for (var doc in snapshot.data!.docs) {
               final data = doc.data() as Map<String, dynamic>;
               final role = data['role'] ?? 'Farmer';
-              if (role == 'Farmer') farmers++;
-              else if (role == 'Cooperative Officer') officers++;
-              else if (role == 'Admin') admins++;
+              if (role == 'Farmer') {
+                farmers++;
+              } else if (role == 'Cooperative Officer')
+                officers++;
+              else if (role == 'Admin')
+                admins++;
             }
           }
 
           final total = farmers + officers + admins;
-          if (total == 0) return const Center(child: Text('No user data available'));
+          if (total == 0)
+            return const Center(child: Text('No user data available'));
 
           return Row(
             children: [
@@ -128,23 +139,38 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                       PieChartSectionData(
                         color: Colors.green,
                         value: farmers.toDouble(),
-                        title: '${((farmers / total) * 100).toStringAsFixed(0)}%',
+                        title:
+                            '${((farmers / total) * 100).toStringAsFixed(0)}%',
                         radius: 50,
-                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        titleStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       PieChartSectionData(
                         color: Colors.orange,
                         value: officers.toDouble(),
-                        title: '${((officers / total) * 100).toStringAsFixed(0)}%',
+                        title:
+                            '${((officers / total) * 100).toStringAsFixed(0)}%',
                         radius: 50,
-                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        titleStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       PieChartSectionData(
                         color: Colors.red,
                         value: admins.toDouble(),
-                        title: '${((admins / total) * 100).toStringAsFixed(0)}%',
+                        title:
+                            '${((admins / total) * 100).toStringAsFixed(0)}%',
                         radius: 50,
-                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        titleStyle: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),
@@ -194,20 +220,34 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
           }
 
           final docs = snapshot.data?.docs ?? [];
-          if (docs.isEmpty) return const Center(child: Text('No submission data'));
+          if (docs.isEmpty)
+            return const Center(child: Text('No submission data'));
 
-          Map<int, int> submissionsByDay = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
-          
+          Map<int, int> submissionsByDay = {
+            1: 0,
+            2: 0,
+            3: 0,
+            4: 0,
+            5: 0,
+            6: 0,
+            7: 0,
+          };
+
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
             final updatedAt = data['updatedAt'];
             if (updatedAt is Timestamp) {
               final date = updatedAt.toDate();
-              submissionsByDay[date.weekday] = (submissionsByDay[date.weekday] ?? 0) + 1;
+              submissionsByDay[date.weekday] =
+                  (submissionsByDay[date.weekday] ?? 0) + 1;
             }
           }
 
-          final maxY = submissionsByDay.values.reduce((a, b) => a > b ? a : b).toDouble() + 5;
+          final maxY =
+              submissionsByDay.values
+                  .reduce((a, b) => a > b ? a : b)
+                  .toDouble() +
+              5;
 
           final titlesData = FlTitlesData(
             show: true,
@@ -215,12 +255,24 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (double value, TitleMeta meta) {
-                  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                  const days = [
+                    'Mon',
+                    'Tue',
+                    'Wed',
+                    'Thu',
+                    'Fri',
+                    'Sat',
+                    'Sun',
+                  ];
                   final index = value.toInt() - 1;
-                  if (index < 0 || index >= days.length) return const SizedBox.shrink();
+                  if (index < 0 || index >= days.length)
+                    return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(days[index], style: const TextStyle(fontSize: 10)),
+                    child: Text(
+                      days[index],
+                      style: const TextStyle(fontSize: 10),
+                    ),
                   );
                 },
               ),
@@ -229,11 +281,18 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 30,
-                getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
+                getTitlesWidget: (value, meta) => Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
+                ),
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           );
 
           if (_isDailySubmissionsLineChart) {
@@ -248,7 +307,11 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: submissionsByDay.entries.map((e) => FlSpot(e.key.toDouble(), e.value.toDouble())).toList(),
+                    spots: submissionsByDay.entries
+                        .map(
+                          (e) => FlSpot(e.key.toDouble(), e.value.toDouble()),
+                        )
+                        .toList(),
                     isCurved: true,
                     color: theme.primaryColor,
                     barWidth: 4,
@@ -279,7 +342,9 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                         toY: entry.value.toDouble(),
                         color: theme.primaryColor,
                         width: 16,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(4),
+                        ),
                       ),
                     ],
                   );
@@ -306,7 +371,9 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
 
           final docs = snapshot.data?.docs ?? [];
           if (docs.isEmpty) {
-            return const Center(child: Text('No price data available for analytics.'));
+            return const Center(
+              child: Text('No price data available for analytics.'),
+            );
           }
 
           // Aggregate crop submissions
@@ -320,14 +387,21 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
           // Sort and take top 5
           final sortedCrops = cropCounts.entries.toList()
             ..sort((a, b) => b.value.compareTo(a.value));
-          
+
           final topCrops = sortedCrops.take(5).toList();
 
           if (topCrops.isEmpty) {
-            return const Center(child: Text('Insufficient data for crop trends.'));
+            return const Center(
+              child: Text('Insufficient data for crop trends.'),
+            );
           }
 
-          final maxY = topCrops.map((e) => e.value).reduce((a, b) => a > b ? a : b).toDouble() + 2;
+          final maxY =
+              topCrops
+                  .map((e) => e.value)
+                  .reduce((a, b) => a > b ? a : b)
+                  .toDouble() +
+              2;
 
           final titlesData = FlTitlesData(
             show: true,
@@ -336,12 +410,16 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                 showTitles: true,
                 getTitlesWidget: (double value, TitleMeta meta) {
                   final index = value.toInt();
-                  if (index < 0 || index >= topCrops.length) return const SizedBox.shrink();
+                  if (index < 0 || index >= topCrops.length)
+                    return const SizedBox.shrink();
                   return Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
-                      topCrops[index].key, 
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)
+                      topCrops[index].key,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   );
                 },
@@ -352,20 +430,27 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                 showTitles: true,
                 reservedSize: 30,
                 getTitlesWidget: (value, meta) => Text(
-                  value.toInt().toString(), 
-                  style: const TextStyle(fontSize: 10)
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10),
                 ),
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
           );
 
           return Column(
             children: [
               const Align(
                 alignment: Alignment.centerRight,
-                child: Text('Most Active Crops', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                child: Text(
+                  'Most Active Crops',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -376,13 +461,19 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                           maxX: (topCrops.length - 1).toDouble(),
                           minY: 0,
                           maxY: maxY,
-                          gridData: const FlGridData(show: true, drawVerticalLine: false),
+                          gridData: const FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                          ),
                           titlesData: titlesData,
                           borderData: FlBorderData(show: false),
                           lineBarsData: [
                             LineChartBarData(
                               spots: List.generate(topCrops.length, (index) {
-                                return FlSpot(index.toDouble(), topCrops[index].value.toDouble());
+                                return FlSpot(
+                                  index.toDouble(),
+                                  topCrops[index].value.toDouble(),
+                                );
                               }),
                               isCurved: true,
                               color: Colors.orange,
@@ -413,7 +504,9 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
                                   toY: topCrops[index].value.toDouble(),
                                   color: Colors.orange,
                                   width: 20,
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
                                 ),
                               ],
                             );
@@ -427,7 +520,6 @@ class _AdminAnalyticsPageState extends State<AdminAnalyticsPage> {
       ),
     );
   }
-
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(

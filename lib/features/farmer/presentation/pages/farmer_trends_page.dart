@@ -148,7 +148,6 @@ class _FarmerTrendsPageState extends State<FarmerTrendsPage> {
             );
           },
         ),
-        ),
         const SizedBox(height: 16),
         // Timeframe Toggle
         Container(

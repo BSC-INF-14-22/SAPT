@@ -1,0 +1,5 @@
+# Git should NOT track these sensitive files
+.env
+serviceAccountKey.json
+smart-agri-price-tracker-firebase-adminsdk-fbsvc-ac2746a0eb.json
+node_modules/
